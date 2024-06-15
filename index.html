@@ -6,6 +6,8 @@
   <title>NoobChallCount</title>
   <!-- Inclure Bootstrap CSS -->
   <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Inclure Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     .counter {
       margin-bottom: 20px;
@@ -86,6 +88,10 @@
   <!-- Bouton Réinitialiser les sauvegardes -->
   <div class="reset-button">
     <button id="resetButton" class="btn btn-danger">Réinitialiser les sauvegardes</button>
+  </div>
+
+  <div class="mt-5">
+    <canvas id="challengesChart"></canvas>
   </div>
 
   <!-- Modal -->
@@ -180,6 +186,9 @@
     savedRecords = [];
     // Supprimer les sauvegardes du localStorage
     localStorage.removeItem('savedRecords');
+
+    // Mettre à jour le graphique après réinitialisation
+    updateChallengesChart();
   });
 
   function displaySavedRecords() {
@@ -190,26 +199,25 @@
       saveText.textContent = `Sauvegarde pour ${record.name} : ${record.count} challenges foirés, le ${record.date}`;
       saveTextContainer.appendChild(saveText);
     });
+
+    // Mettre à jour le graphique après chaque ajout de sauvegarde
+    updateChallengesChart();
   }
 
   function addCounter(buttonName) {
     // Créer les éléments pour un nouveau compteur
     const counterRow = document.createElement('tr');
-
     const nameCell = document.createElement('td');
     nameCell.textContent = buttonName;
 
     const countCell = document.createElement('td');
     const countP = document.createElement('p');
-    const countId = 'count' + counterId;
-    countP.id = countId;
     countP.textContent = '0';
     countCell.appendChild(countP);
 
     const actionCell = document.createElement('td');
     const addButton = document.createElement('button');
     addButton.textContent = '+1';
-    addButton.id = 'addButton' + counterId;
     addButton.classList.add('btn', 'btn-secondary');
     actionCell.appendChild(addButton);
 
@@ -221,23 +229,104 @@
     // Ajouter la ligne au tableau
     countersContainer.appendChild(counterRow);
 
+    // Gestion de l'ID pour chaque compteur
+    const counterId = counters.length + 1;
+
     // Ajouter le compteur à la liste des compteurs
     counters.push({ id: counterId, name: buttonName, count: 0 });
 
-    // Ajouter un écouteur d'événement pour incrémenter le compteur
+    // Ajouter un gestionnaire d'événements pour le bouton +1
     addButton.addEventListener('click', () => {
-      // Extraire l'ID du bouton à partir de son ID
-      const id = parseInt(addButton.id.replace('addButton', ''));
-      // Trouver le compteur correspondant dans le tableau
-      const counterIndex = counters.findIndex(counter => counter.id === id);
-      // Incrémenter le compteur
-      counters[counterIndex].count++;
-      // Mettre à jour le texte du compteur
-      document.getElementById('count' + id).textContent = counters[counterIndex].count.toString();
+      // Trouver l'index du compteur dans le tableau counters
+      const index = counters.findIndex(counter => counter.id === counterId);
+      // Incrémenter le compteur pour ce compteur spécifique
+      counters[index].count++;
+      // Mettre à jour l'affichage du compteur dans le DOM
+      countP.textContent = counters[index].count.toString();
+
+      // Mettre à jour le graphique à chaque clic sur le bouton +1
+      updateChallengesChart();
+    });
+  }
+
+
+  function updateChallengesChart() {
+    // Récupérer tous les noms de noob uniques
+    const uniqueNames = [...new Set(counters.map(counter => counter.name))];
+
+    // Initialiser un tableau pour les totaux de challenges foirés par noob
+    const challengesData = uniqueNames.map(name => {
+      return {
+        name: name,
+        total: counters.filter(counter => counter.name === name).reduce((acc, curr) => acc + curr.count, 0)
+      };
     });
 
-    // Incrémenter l'identifiant pour le prochain compteur
-    counterId++;
+    // Extraire les noms et les totaux pour le graphique
+    const names = challengesData.map(data => data.name);
+    const totals = challengesData.map(data => data.total);
+
+    // Couleurs pré-définies pour chaque barre du graphique
+    const colors = [
+      'rgba(255, 99, 132, 0.2)', // Rouge
+      'rgba(54, 162, 235, 0.2)', // Bleu
+      'rgba(255, 206, 86, 0.2)', // Jaune
+      'rgba(75, 192, 192, 0.2)', // Vert
+      'rgba(153, 102, 255, 0.2)', // Violet
+      'rgba(255, 159, 64, 0.2)'  // Orange
+    ];
+
+    // Configuration des couleurs pour chaque barre du graphique
+    const backgroundColors = names.map((name, index) => colors[index % colors.length]);
+
+    // Configuration du graphique avec Chart.js
+    const ctx = document.getElementById('challengesChart').getContext('2d');
+    if (window.myChart instanceof Chart) {
+      window.myChart.destroy(); // Détruire l'instance précédente du graphique pour éviter les doublons
+    }
+    window.myChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: names,
+        datasets: [{
+          label: 'Challenges foirés',
+          data: totals,
+          backgroundColor: backgroundColors,
+          borderColor: 'rgba(0, 0, 0, 1)',
+          borderWidth: 1
+        }]
+      },
+      options: {
+        scales: {
+          y: {
+            beginAtZero: true,
+            title: {
+              display: true,
+              text: 'Nombre de challenges foirés'
+            }
+          },
+          x: {
+            title: {
+              display: true,
+              text: 'Noob'
+            }
+          }
+        },
+        plugins: {
+          tooltip: {
+            callbacks: {
+              label: function(context) {
+                // Récupérer le nom du noob à partir de l'index context.datasetIndex et context.dataIndex
+                const name = names[context.dataIndex];
+                // Récupérer le nombre de challenges foirés
+                const count = context.raw;
+                return `${name}: ${count} challenges foirés`;
+              }
+            }
+          }
+        }
+      }
+    });
   }
 </script>
 </body>
