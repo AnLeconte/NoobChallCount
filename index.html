@@ -5,54 +5,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NoobChallCount</title>
   <!-- Inclure Bootstrap CSS -->
-  <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
   <!-- Inclure Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    .counter {
-      margin-bottom: 20px;
-    }
-
-    /* Styles pour positionner l'image */
-    #dofusEmeraude {
-      position: fixed;
-      bottom: 10px; /* Ajuster selon votre besoin */
-      right: 10px; /* Ajuster selon votre besoin */
-      width: 100px; /* Ajuster la taille de l'image */
-      height: auto; /* Pour garder les proportions */
-      z-index: 1000; /* Assure que l'image soit au-dessus du contenu */
-    }
-
-    /* Ajout d'une couleur de fond temporaire pour déboguer */
     body {
-      background-color: #f8f9fa; /* Couleur de fond temporaire */
+      background-color: #f8f9fa;
     }
 
     .container {
-      background-color: #ffffff; /* Couleur de fond du conteneur principal */
-      padding: 20px; /* Ajouter un peu d'espace autour du contenu */
-      margin-top: 20px; /* Ajuster selon votre besoin */
+      background-color: #ffffff;
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 8px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
     }
 
-    /* Rétablissement des styles pour le tableau et les textes */
+    .form-control {
+      border-color: #ced4da;
+      border-radius: 6px;
+      font-size: 1rem;
+    }
+
+    .btn-primary {
+      background-color: #007bff;
+      border-color: #007bff;
+      border-radius: 6px;
+      font-size: 1rem;
+      transition: background-color 0.3s ease;
+    }
+
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+
+    .btn-primary:focus {
+      box-shadow: 0 0 0 0.2rem rgba(38, 143, 255, 0.5);
+    }
+
     .table {
-      margin-top: 20px; /* Espacement entre le haut du conteneur et le tableau */
-    }
-
-    .modal-content {
-      background-color: #ffffff; /* Couleur de fond de la modal */
-    }
-
-    /* Styles pour positionner les boutons */
-    .buttons-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
       margin-top: 20px;
     }
 
+    .modal-content {
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    }
+
     .reset-button {
-      margin-top: 10px; /* Espacement supplémentaire après les textes de sauvegarde */
+      margin-top: 10px;
+    }
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .table tr.new-noob {
+      animation: fadeIn 0.5s ease-out;
     }
   </style>
 </head>
@@ -60,15 +76,22 @@
 <div class="container">
   <div class="d-flex flex-column align-items-center my-4">
     <h1>Ajouter un noob</h1>
-    <div class="d-flex mb-4">
-      <input type="text" id="buttonName" placeholder="Nom du noob" class="form-control mr-2">
-      <button id="createButton" class="btn btn-primary">Ajouter le noob</button>
+    <div class="input-group mb-4">
+      <input type="text" id="buttonName" placeholder="Nom du noob" class="form-control">
+      <div class="input-group-append">
+        <button id="createButton" class="btn btn-primary">Ajouter le noob</button>
+      </div>
     </div>
+  </div>
+
+  <div class="buttons-container">
+    <button id="sortByName" class="btn btn-secondary">Trier par nom</button>
+    <button id="sortByCount" class="btn btn-secondary">Trier par challenges foirés</button>
   </div>
 
   <table class="table table-striped">
     <thead>
-    <tr>
+    <tr class="new-noob">
       <th>Nom du noob</th>
       <th>Challenges foirés</th>
       <th>+1</th>
@@ -122,20 +145,19 @@
 <!-- Inclure Bootstrap JS et ses dépendances -->
 <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.2/dist/umd/popper.min.js"></script>
-<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 
 <script>
-  let counterId = 1; // Identifiant pour les compteurs
+  let counterId = 1;
   const countersContainer = document.getElementById('countersContainer');
   const createButton = document.getElementById('createButton');
   const saveButton = document.getElementById('saveButton');
   const resetButton = document.getElementById('resetButton');
   const saveTextContainer = document.getElementById('saveText');
 
-  let counters = []; // Tableau pour stocker les compteurs
-  let savedRecords = []; // Tableau pour stocker les enregistrements sauvegardés
+  let counters = [];
+  let savedRecords = [];
 
-  // Charger les enregistrements depuis localStorage s'ils existent
   if (localStorage.getItem('savedRecords')) {
     savedRecords = JSON.parse(localStorage.getItem('savedRecords'));
     displaySavedRecords();
@@ -148,51 +170,41 @@
       return;
     }
     addCounter(buttonName);
-    document.getElementById('buttonName').value = ''; // Réinitialiser le champ de saisie
+    document.getElementById('buttonName').value = '';
   });
 
   saveButton.addEventListener('click', () => {
     const maxCount = Math.max(...counters.map(counter => counter.count));
     const topCounter = counters.find(counter => counter.count === maxCount);
-    const currentDate = new Date().toLocaleString(); // Obtenir la date actuelle
+    const currentDate = new Date().toLocaleString();
 
-    // Créer un nouvel enregistrement
     const record = {
       name: topCounter.name,
       count: topCounter.count,
       date: currentDate
     };
 
-    // Ajouter l'enregistrement au tableau des enregistrements
     savedRecords.push(record);
-
-    // Sauvegarder les enregistrements dans localStorage
     localStorage.setItem('savedRecords', JSON.stringify(savedRecords));
 
-    // Afficher le dernier enregistrement sauvegardé
     document.getElementById('topNoobName').textContent = record.name;
     document.getElementById('topNoobCount').textContent = record.count;
     document.getElementById('saveDate').textContent = record.date;
-    $('#exampleModal').modal('show'); // Afficher la modal
+    $('#exampleModal').modal('show');
 
-    // Afficher tous les enregistrements sauvegardés
     displaySavedRecords();
   });
 
   resetButton.addEventListener('click', () => {
-    // Réinitialiser les sauvegardes visuelles
     saveTextContainer.innerHTML = '';
-    // Réinitialiser le tableau des enregistrements
     savedRecords = [];
-    // Supprimer les sauvegardes du localStorage
     localStorage.removeItem('savedRecords');
 
-    // Mettre à jour le graphique après réinitialisation
     updateChallengesChart();
   });
 
   function displaySavedRecords() {
-    saveTextContainer.innerHTML = ''; // Effacer le contenu actuel
+    saveTextContainer.innerHTML = '';
 
     savedRecords.forEach(record => {
       const saveText = document.createElement('p');
@@ -200,13 +212,14 @@
       saveTextContainer.appendChild(saveText);
     });
 
-    // Mettre à jour le graphique après chaque ajout de sauvegarde
     updateChallengesChart();
   }
 
   function addCounter(buttonName) {
     // Créer les éléments pour un nouveau compteur
     const counterRow = document.createElement('tr');
+    counterRow.classList.add('new-noob'); // Ajouter la classe new-noob à la nouvelle ligne
+
     const nameCell = document.createElement('td');
     nameCell.textContent = buttonName;
 
@@ -247,14 +260,62 @@
       // Mettre à jour le graphique à chaque clic sur le bouton +1
       updateChallengesChart();
     });
+
+    // Appliquer l'animation fadeIn à la nouvelle ligne
+    setTimeout(() => {
+      counterRow.classList.remove('new-noob'); // Supprimer la classe new-noob après l'animation
+    }, 1000); // Supprimez cette ligne si vous n'avez pas besoin de supprimer la classe
   }
 
+  // Fonction pour trier les noobs par nom
+  document.getElementById('sortByName').addEventListener('click', () => {
+    counters.sort((a, b) => a.name.localeCompare(b.name));
+    updateCountersDOM();
+  });
+
+  // Fonction pour trier les noobs par nombre de challenges foirés
+  document.getElementById('sortByCount').addEventListener('click', () => {
+    counters.sort((a, b) => b.count - a.count); // Tri décroissant par défaut
+    updateCountersDOM();
+  });
+
+  // Fonction pour mettre à jour l'affichage des compteurs après le tri
+  function updateCountersDOM() {
+    const countersContainer = document.getElementById('countersContainer');
+    countersContainer.innerHTML = ''; // Effacer le contenu actuel
+
+    counters.forEach(counter => {
+      const counterRow = document.createElement('tr');
+      const nameCell = document.createElement('td');
+      nameCell.textContent = counter.name;
+
+      const countCell = document.createElement('td');
+      const countP = document.createElement('p');
+      countP.textContent = counter.count.toString();
+      countCell.appendChild(countP);
+
+      const actionCell = document.createElement('td');
+      const addButton = document.createElement('button');
+      addButton.textContent = '+1';
+      addButton.classList.add('btn', 'btn-secondary');
+      actionCell.appendChild(addButton);
+
+      counterRow.appendChild(nameCell);
+      counterRow.appendChild(countCell);
+      counterRow.appendChild(actionCell);
+
+      countersContainer.appendChild(counterRow);
+
+      addButton.addEventListener('click', () => {
+        counter.count++;
+        countP.textContent = counter.count.toString();
+        updateChallengesChart();
+      });
+    });
+  }
 
   function updateChallengesChart() {
-    // Récupérer tous les noms de noob uniques
     const uniqueNames = [...new Set(counters.map(counter => counter.name))];
-
-    // Initialiser un tableau pour les totaux de challenges foirés par noob
     const challengesData = uniqueNames.map(name => {
       return {
         name: name,
@@ -262,11 +323,9 @@
       };
     });
 
-    // Extraire les noms et les totaux pour le graphique
     const names = challengesData.map(data => data.name);
     const totals = challengesData.map(data => data.total);
 
-    // Couleurs pré-définies pour chaque barre du graphique
     const colors = [
       'rgba(255, 99, 132, 0.2)', // Rouge
       'rgba(54, 162, 235, 0.2)', // Bleu
@@ -276,13 +335,11 @@
       'rgba(255, 159, 64, 0.2)'  // Orange
     ];
 
-    // Configuration des couleurs pour chaque barre du graphique
     const backgroundColors = names.map((name, index) => colors[index % colors.length]);
 
-    // Configuration du graphique avec Chart.js
     const ctx = document.getElementById('challengesChart').getContext('2d');
     if (window.myChart instanceof Chart) {
-      window.myChart.destroy(); // Détruire l'instance précédente du graphique pour éviter les doublons
+      window.myChart.destroy();
     }
     window.myChart = new Chart(ctx, {
       type: 'bar',
@@ -316,9 +373,7 @@
           tooltip: {
             callbacks: {
               label: function(context) {
-                // Récupérer le nom du noob à partir de l'index context.datasetIndex et context.dataIndex
                 const name = names[context.dataIndex];
-                // Récupérer le nombre de challenges foirés
                 const count = context.raw;
                 return `${name}: ${count} challenges foirés`;
               }
@@ -331,3 +386,4 @@
 </script>
 </body>
 </html>
+
